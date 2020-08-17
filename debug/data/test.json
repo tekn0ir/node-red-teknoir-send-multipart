@@ -1,0 +1,22 @@
+{
+  "DeviceID": "jetson-nano-one",
+  "RecordID": "899ec1fc.01cc7",
+  "DeviceModel": "N/A",
+  "EventDateTime": "2020-08-14T14:11:16Z",
+  "GPSLatitude": 59.3528972,
+  "GPSLongitude": 13.4962425,
+  "Temperature": 82.0,
+  "MLModel": "N/A",
+  "MLObjects": [
+    {
+      "Label": "FOAM",
+      "Probability": 37.337130308151245,
+      "Coordinates": "L:5,T:46,R:130,B:84"
+    },
+    {
+      "Label": "CARDBOARD",
+      "Probability": 32.015010714530945,
+      "Coordinates": "L:104,T:99,R:172,B:131"
+    }
+  ]
+}

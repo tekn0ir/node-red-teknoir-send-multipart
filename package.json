@@ -1,0 +1,25 @@
+{
+	"name": "node-red-teknoir-send-multipart",
+	"version": "0.0.1",
+	"description": "NodeRed node for posting multipart form data to external sites",
+	"scripts": {},
+	"dependencies": {
+		"mustache": "^2.3.0",
+		"request": "^2.86.0"
+	},
+	"repository": {
+		"type": "git",
+		"url": "git+https://github.com/tekn0ir/node-red-teknoir-send-multipart.git"
+	},
+	"keywords": [
+		"node-red",
+		"multipart",
+		"formdata"
+	],
+	"author": "Anders Åslund",
+	"node-red": {
+		"nodes": {
+			"http-send-multipart": "src/http-send-multipart.js"
+		}
+	}
+}
