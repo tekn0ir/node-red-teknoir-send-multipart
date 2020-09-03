@@ -4,7 +4,7 @@ var request = require('request');
 
 var FormData = require('form-data');
 
-module.exports = function(RED) {
+module.exports = function (RED) {
 
     function httpSendMultipart(n) {
         // Setup node
@@ -19,19 +19,19 @@ module.exports = function(RED) {
         }
 
         // 1) Process inputs to Node
-        this.on("input", function(msg) {
+        this.on("input", function (msg,nodeSend,nodeDone) {
 
-			// Load 'url' parameter from node and try msg as failover
-	        var nodeUrl = n.url;
-			if(!nodeUrl) {
-				nodeUrl = msg.url;
-			}
-			var isTemplatedUrl = (nodeUrl || "").indexOf("{{") != -1;
+            // Load 'url' parameter from node and try msg as failover
+            var nodeUrl = n.url;
+            if (!nodeUrl) {
+                nodeUrl = msg.url;
+            }
+            var isTemplatedUrl = (nodeUrl || "").indexOf("{{") != -1;
 
             // Object extend
             function extend(target) {
                 var sources = [].slice.call(arguments, 1);
-                sources.forEach(function(source) {
+                sources.forEach(function (source) {
                     for (var prop in source) {
                         target[prop] = source[prop];
                     }
@@ -90,44 +90,96 @@ module.exports = function(RED) {
                     };
                 }
 
-                request.post({url: url, formData: formData}, function optionalCallback(err, resp, body) {
-                        console.log(err)
-                        // remove sending status
-                        node.status({});
-
-                        //Handle error
-                        if (err || !resp) {
-                            // node.error(RED._("httpSendMultipart.errors.no-url"), msg);
-                            var statusText = "Unexpected error";
-                            if (err) {
-                                statusText = err;
-                            } else if (!resp) {
-                                statusText = "No response object";
-                            }
-                            node.status({
-                                fill: "red",
-                                shape: "ring",
-                                text: statusText
-                            });
+                request.post({url: url, formData: formData}, function optionalCallback(err, res, body) {
+                    if (err) {
+                        if (err.code === 'ETIMEDOUT' || err.code === 'ESOCKETTIMEDOUT') {
+                            node.error(RED._("common.notification.errors.no-response"), msg);
+                            node.status({fill: "red", shape: "ring", text: "common.notification.errors.no-response"});
+                        } else {
+                            node.error(err, msg);
+                            node.status({fill: "red", shape: "ring", text: err.code});
                         }
+                        msg.payload = err.toString() + " : " + url;
+                        msg.statusCode = err.code;
+                        nodeSend(msg);
+                        nodeDone();
+                    } else {
+                        msg.statusCode = res.statusCode;
+                        msg.headers = res.headers;
+                        msg.responseUrl = res.request.uri.href;
                         msg.payload = body;
-                        msg.statusCode = resp.statusCode || resp.status;
-                        msg.headers = resp.headers;
-                        msg.formData = formData;
+                        msg.redirectList = redirectList;
 
+                        if (msg.headers.hasOwnProperty('set-cookie')) {
+                            msg.responseCookies = extractCookies(msg.headers['set-cookie']);
+                        }
+                        msg.headers['x-node-red-request-node'] = hashSum(msg.headers);
+                        // msg.url = url;   // revert when warning above finally removed
+                        if (node.metric()) {
+                            // Calculate request time
+                            var diff = process.hrtime(preRequestTimestamp);
+                            var ms = diff[0] * 1e3 + diff[1] * 1e-6;
+                            var metricRequestDurationMillis = ms.toFixed(3);
+                            node.metric("duration.millis", msg, metricRequestDurationMillis);
+                            if (res.client && res.client.bytesRead) {
+                                node.metric("size.bytes", msg, res.client.bytesRead);
+                            }
+                        }
+
+                        // Convert the payload to the required return type
                         if (node.ret !== "bin") {
-                            msg.payload = body.toString('utf8'); // txt
+                            msg.payload = msg.payload.toString('utf8'); // txt
 
                             if (node.ret === "obj") {
                                 try {
-                                    msg.payload = JSON.parse(body);
-                                } catch (e) {
-                                    node.warn(RED._("httpSendMultipart.errors.json-error"));
+                                    msg.payload = JSON.parse(msg.payload);
+                                } // obj
+                                catch (e) {
+                                    node.warn(RED._("httpin.errors.json-error"));
                                 }
                             }
                         }
-
-                        node.send(msg);
+                        node.status({});
+                        nodeSend(msg);
+                        nodeDone();
+                    }
+                    // console.log(err)
+                    // // remove sending status
+                    // node.status({});
+                    //
+                    // //Handle error
+                    // if (err || !resp) {
+                    //     // node.error(RED._("httpSendMultipart.errors.no-url"), msg);
+                    //     var statusText = "Unexpected error";
+                    //     if (err) {
+                    //         statusText = err;
+                    //     } else if (!resp) {
+                    //         statusText = "No response object";
+                    //     }
+                    //     node.status({
+                    //         fill: "red",
+                    //         shape: "ring",
+                    //         text: statusText
+                    //     });
+                    // }
+                    // msg.payload = body;
+                    // msg.statusCode = resp.statusCode || resp.status;
+                    // msg.headers = resp.headers;
+                    // msg.formData = formData;
+                    //
+                    // if (node.ret !== "bin") {
+                    //     msg.payload = body.toString('utf8'); // txt
+                    //
+                    //     if (node.ret === "obj") {
+                    //         try {
+                    //             msg.payload = JSON.parse(body);
+                    //         } catch (e) {
+                    //             node.warn(RED._("httpSendMultipart.errors.json-error"));
+                    //         }
+                    //     }
+                    // }
+                    //
+                    // node.send(msg);
                 });
 
             }

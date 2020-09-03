@@ -1,0 +1,188 @@
+[
+  {
+    "id": "29752fd.b3b4fd",
+    "type": "tab",
+    "label": "Flow 1",
+    "disabled": false,
+    "info": ""
+  },
+  {
+    "id": "e9676604.096708",
+    "type": "mqtt-broker",
+    "z": "",
+    "name": "",
+    "broker": "mqtt.kube-system",
+    "port": "1883",
+    "clientid": "",
+    "usetls": false,
+    "compatmode": false,
+    "keepalive": "60",
+    "cleansession": true,
+    "birthTopic": "",
+    "birthQos": "0",
+    "birthPayload": "",
+    "closeTopic": "",
+    "closeQos": "0",
+    "closePayload": "",
+    "willTopic": "",
+    "willQos": "0",
+    "willPayload": ""
+  },
+  {
+    "id": "7ec977da.17f778",
+    "type": "function",
+    "z": "29752fd.b3b4fd",
+    "name": "Format msg",
+    "func": "// Get cached GPS location\nlet location = flow.get('location', msg.payload.location);\nif (location === undefined) {\n    location = {\"lat\":\"N/A\",\"lng\":\"N/A\"};\n}\n\nfunction toMLObjects(predictions) {\n    var MLObjects = [];\n    for (let i = 0; i < predictions.length; i++) {\n        var L = (predictions[i].bbox[0] * 800).toFixed();\n        var T = (predictions[i].bbox[1] * 600).toFixed();\n        var R = (predictions[i].bbox[2] * 800).toFixed();\n        var B = (predictions[i].bbox[3] * 600).toFixed();\n\n        MLObjects.push({\n            \"Label\": predictions[i].className,\n            \"Probability\": predictions[i].score * 100,\n            \"Coordinates\": \"L:\" + L + \", T:\" + T + \", R:\" + R + \", B:\" + B\n        })\n    }\n    return MLObjects;\n}\n\nDate.prototype.dateToISO8601String  = function() {\n    var padDigits = function padDigits(number, digits) {\n        return Array(Math.max(digits - String(number).length + 1, 0)).join(0) + number;\n    }\n    var offsetMinutes = this.getTimezoneOffset();\n    var offsetHours = offsetMinutes / 60;\n    var offset= \"Z\";    \n    if (offsetHours < 0)\n      offset = \"-\" + padDigits(offsetHours.replace(\"-\",\"\") + \"00\",4);\n    else if (offsetHours > 0) \n      offset = \"+\" + padDigits(offsetHours  + \"00\", 4);\n\n    return this.getFullYear() \n            + \"-\" + padDigits((this.getUTCMonth()+1),2) \n            + \"-\" + padDigits(this.getUTCDate(),2) \n            + \"T\" \n            + padDigits(this.getUTCHours(),2)\n            + \":\" + padDigits(this.getUTCMinutes(),2)\n            + \":\" + padDigits(this.getUTCSeconds(),2)\n            + offset;\n\n}\n\nvar date = new Date();\n\nvar payload = {\n    \"DeviceID\": \"jetson-nano-one\",\n    \"RecordID\": msg._msgid,\n    \"DeviceModel\": \"N/A\",\n    \"EventDateTime\": date.dateToISO8601String(),\n    \"GPSLatitude\": location.lat,\n    \"GPSLongitude\":location.lng,\n    \"Temperature\": 0.0,\n    \"MLModel\": \"N/A\",\n    \"MLObjects\": toMLObjects(msg.payload.objects)\n};\n\nvar image = msg.payload.image;\nvar buffer = Buffer.from(image.split(\",\")[1], 'base64').toString();\n\nmsg.headers = {\n    \"Content-Type\": \"multipart/form-data; boundary=------------------------d74496d66958873e\"\n}\n\n\nmsg.payload = '--------------------------d74496d66958873e\\r\\n'+\n    'Content-Disposition: form-data; name=\"payload\"\\r\\n'+\n    'Content-Type: application/json\\r\\n'+\n    '\\r\\n'+\n    JSON.stringify(payload)+'\\r\\n'+\n    '--------------------------d74496d66958873e\\r\\n'+\n    'Content-Disposition: form-data; name=\"imagefile\"; filename=\"imagefile.jpg\"\\r\\n'+\n    'Content-Type: image/jpeg\\r\\n'+\n//    'Content-Transfer-Encoding: base64\\r\\n'+\n    '\\r\\n'+\n    buffer.toString()+'\\r\\n'+\n    '--------------------------d74496d66958873e--\\r\\n';\n\n\nreturn msg;",
+    "outputs": 1,
+    "noerr": 0,
+    "x": 790,
+    "y": 100,
+    "wires": [
+      []
+    ]
+  },
+  {
+    "id": "34f7267a.4f660a",
+    "type": "file in",
+    "z": "29752fd.b3b4fd",
+    "name": "Read image",
+    "filename": "data/test_large.jpg",
+    "format": "",
+    "chunk": false,
+    "sendError": false,
+    "encoding": "binary",
+    "x": 250,
+    "y": 180,
+    "wires": [
+      [
+        "2cdfb79e.2c4de8",
+        "12517918.659937"
+      ]
+    ]
+  },
+  {
+    "id": "bd28acce.e9f3d",
+    "type": "inject",
+    "z": "29752fd.b3b4fd",
+    "name": "",
+    "topic": "",
+    "payload": "",
+    "payloadType": "date",
+    "repeat": "",
+    "crontab": "",
+    "once": false,
+    "onceDelay": 0.1,
+    "x": 120,
+    "y": 80,
+    "wires": [
+      [
+        "34f7267a.4f660a"
+      ]
+    ]
+  },
+  {
+    "id": "2cdfb79e.2c4de8",
+    "type": "image viewer",
+    "z": "29752fd.b3b4fd",
+    "name": "",
+    "width": 160,
+    "data": "payload",
+    "dataType": "msg",
+    "x": 480,
+    "y": 100,
+    "wires": [
+      []
+    ]
+  },
+  {
+    "id": "12517918.659937",
+    "type": "function",
+    "z": "29752fd.b3b4fd",
+    "name": "Make sustayn msg",
+    "func": "Date.prototype.toIsoString = function() {\n    var tzo = -this.getTimezoneOffset(),\n        dif = tzo >= 0 ? '+' : '-',\n        pad = function(num) {\n            var norm = Math.floor(Math.abs(num));\n            return (norm < 10 ? '0' : '') + norm;\n        };\n    return this.getFullYear() +\n        '-' + pad(this.getMonth() + 1) +\n        '-' + pad(this.getDate()) +\n        'T' + pad(this.getHours()) +\n        ':' + pad(this.getMinutes()) +\n        ':' + pad(this.getSeconds()) +\n        dif + pad(tzo / 60) +\n        ':' + pad(tzo % 60);\n}\n\nvar now = new Date();\n\nmsg.payload = {\n    \"imagefile\": {\n        \"options\": {\n            \"filename\": \"imagefile.jpg\",\n            \"contentType\": \"image/jpeg\",\n            \"knownLength\": msg.payload.length\n        },\n        \"value\": msg.payload\n    },\n    \"payload\": {\n        \"options\": {\n            \"contentType\": \"application/json\"\n        },\n        \"value\": JSON.stringify({\n            \"DeviceID\": \"jetson-nano-one\",\n            \"RecordID\": \"899ec2fc.01cc7\",\n            \"DeviceModel\": \"jetson-nano\",\n            \"EventDateTime\": now.toIsoString().split('.')[0]+\"Z\",\n            \"GPSLatitude\": 59.3528972,\n            \"GPSLongitude\": 13.4962425,\n            \"Temperature\": 82.0,\n            \"MLModel\": \"test\",\n            \"MLObjects\": [\n                {\n                    \"Label\": \"FOAM\",\n                    \"Probability\": 37.337130308151245,\n                    \"Coordinates\": \"L:5,T:46,R:130,B:84\"\n                },\n                {\n                    \"Label\": \"CARDBOARD\",\n                    \"Probability\": 32.015010714530945,\n                    \"Coordinates\": \"L:104,T:99,R:172,B:131\"\n                }\n            ]\n        })\n    },\n};\n\nreturn msg;",
+    "outputs": 1,
+    "noerr": 0,
+    "x": 290,
+    "y": 380,
+    "wires": [
+      [
+        "1c99e000.ce31c",
+        "409e0332.16892c"
+      ]
+    ]
+  },
+  {
+    "id": "1c99e000.ce31c",
+    "type": "debug",
+    "z": "29752fd.b3b4fd",
+    "name": "",
+    "active": true,
+    "tosidebar": true,
+    "console": false,
+    "tostatus": false,
+    "complete": "true",
+    "targetType": "full",
+    "x": 830,
+    "y": 420,
+    "wires": []
+  },
+  {
+    "id": "409e0332.16892c",
+    "type": "http-send-multipart",
+    "z": "29752fd.b3b4fd",
+    "name": "",
+    "ret": "txt",
+    "url": "https://devices.poweredbysustayn.com/Devices/TeknoirV10/Event",
+    "credentials": {
+      "user": "TeknoirAI",
+      "password": "TNEdge-v1.0"
+    },
+    "tls": "",
+    "x": 520,
+    "y": 519,
+    "wires": [
+      [
+        "1c99e000.ce31c"
+      ]
+    ]
+  },
+  {
+    "id": "25e75bf3.b7e174",
+    "type": "http request",
+    "z": "29752fd.b3b4fd",
+    "name": "Post to Sustayn endpoint",
+    "method": "POST",
+    "ret": "txt",
+    "paytoqs": false,
+    "url": "https://devices.poweredbysustayn.com/Devices/TeknoirV10/Event",
+    "tls": "",
+    "persist": false,
+    "proxy": "",
+    "authType": "basic",
+    "x": 530,
+    "y": 740,
+    "wires": [
+      [
+        "1c99e000.ce31c"
+      ]
+    ]
+  },
+  {
+    "id": "c35bcf4c.e3bf4",
+    "type": "function",
+    "z": "29752fd.b3b4fd",
+    "name": "Transform event to Sustayn format",
+    "func": "var now = new Date();\n\nvar payload = {\n            \"DeviceID\": \"jetson-nano-one\",\n            \"RecordID\": \"893ec2fc.01cc7\",\n            \"DeviceModel\": \"jetson-nano\",\n            \"EventDateTime\": now.toISOString().split('.')[0]+\"Z\",\n            \"GPSLatitude\": 59.3528972,\n            \"GPSLongitude\": 13.4962425,\n            \"Temperature\": 82.0,\n            \"MLModel\": \"test\",\n            \"MLObjects\": [\n                {\n                    \"Label\": \"FOAM\",\n                    \"Probability\": 37.337130308151245,\n                    \"Coordinates\": \"L:5,T:46,R:130,B:84\"\n                },\n                {\n                    \"Label\": \"CARDBOARD\",\n                    \"Probability\": 32.015010714530945,\n                    \"Coordinates\": \"L:104,T:99,R:172,B:131\"\n                }\n            ]\n        };\n\nvar buffer = msg.payload;\n\n//    'Content-Transfer-Encoding: base64\\r\\n'+\n//    'Content-Transfer-Encoding: binary\\r\\n'+\n//    buffer.toString('base64')+'\\r\\n'+\n\nmsg.payload = '--------------------------d74496d66958873e\\r\\n'+\n    'Content-Disposition: form-data; name=\"payload\"\\r\\n'+\n    'Content-Type: application/json\\r\\n'+\n    '\\r\\n'+\n    JSON.stringify(payload)+'\\r\\n'+\n    '--------------------------d74496d66958873e\\r\\n'+\n    'Content-Disposition: form-data; name=\"imagefile\"; filename=\"test.jpg\"\\r\\n'+\n    'Content-Type: image/jpeg\\r\\n'+\n    '\\r\\n'+\n    buffer+'\\r\\n'+\n    '--------------------------d74496d66958873e--\\r\\n';\n\nmsg.headers = {\n//    \"Content-Length\": msg.payload.length,\n    \"Content-Type\": \"multipart/form-data; boundary=------------------------d74496d66958873e\"\n}\n\nreturn msg;",
+    "outputs": 1,
+    "noerr": 0,
+    "x": 282,
+    "y": 685,
+    "wires": [
+      [
+        "25e75bf3.b7e174",
+        "1c99e000.ce31c"
+      ]
+    ]
+  }
+]

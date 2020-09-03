@@ -90,6 +90,24 @@ let location = flow.get('location', msg.payload.location);
 if (location === undefined) {
     location = {"lat":"N/A","lng":"N/A"};
 }
+
+function toMLObjects(predictions) {
+    var MLObjects = [];
+    for (let i = 0; i < predictions.length; i++) {
+        var L = (predictions[i].bbox[0] * 800).toFixed();
+        var T = (predictions[i].bbox[1] * 600).toFixed();
+        var R = (predictions[i].bbox[2] * 800).toFixed();
+        var B = (predictions[i].bbox[3] * 600).toFixed();
+
+        MLObjects.push({
+            "Label": predictions[i].className,
+            "Probability": predictions[i].score * 100,
+            "Coordinates": "L:" + L + ", T:" + T + ", R:" + R + ", B:" + B
+        })
+    }
+    return MLObjects;
+}
+
 var now = new Date();
 var image = msg.payload;
 var buffer = Buffer.from(image.split(",")[1], 'base64').toString();
