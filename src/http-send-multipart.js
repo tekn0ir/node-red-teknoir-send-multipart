@@ -20,6 +20,7 @@ module.exports = function (RED) {
 
         // 1) Process inputs to Node
         this.on("input", function (msg,nodeSend,nodeDone) {
+            // var preRequestTimestamp = process.hrtime();
 
             // Load 'url' parameter from node and try msg as failover
             var nodeUrl = n.url;
@@ -108,23 +109,23 @@ module.exports = function (RED) {
                         msg.headers = res.headers;
                         msg.responseUrl = res.request.uri.href;
                         msg.payload = body;
-                        msg.redirectList = redirectList;
+                        // msg.redirectList = redirectList;
 
                         if (msg.headers.hasOwnProperty('set-cookie')) {
                             msg.responseCookies = extractCookies(msg.headers['set-cookie']);
                         }
-                        msg.headers['x-node-red-request-node'] = hashSum(msg.headers);
+                        // msg.headers['x-node-red-request-node'] = hashSum(msg.headers);
                         // msg.url = url;   // revert when warning above finally removed
-                        if (node.metric()) {
-                            // Calculate request time
-                            var diff = process.hrtime(preRequestTimestamp);
-                            var ms = diff[0] * 1e3 + diff[1] * 1e-6;
-                            var metricRequestDurationMillis = ms.toFixed(3);
-                            node.metric("duration.millis", msg, metricRequestDurationMillis);
-                            if (res.client && res.client.bytesRead) {
-                                node.metric("size.bytes", msg, res.client.bytesRead);
-                            }
-                        }
+                        // if (node.metric()) {
+                        //     // Calculate request time
+                        //     var diff = process.hrtime(preRequestTimestamp);
+                        //     var ms = diff[0] * 1e3 + diff[1] * 1e-6;
+                        //     var metricRequestDurationMillis = ms.toFixed(3);
+                        //     node.metric("duration.millis", msg, metricRequestDurationMillis);
+                        //     if (res.client && res.client.bytesRead) {
+                        //         node.metric("size.bytes", msg, res.client.bytesRead);
+                        //     }
+                        // }
 
                         // Convert the payload to the required return type
                         if (node.ret !== "bin") {
