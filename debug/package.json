@@ -12,8 +12,15 @@
     "start": "node $NODE_OPTIONS node_modules/node-red/red.js --userDir ./data -v"
   },
   "dependencies": {
-    "node-red": "1.0.3",
+    "node-red": "^1.2.9",
+    "node-red-contrib-modbus": "5.2.0",
+    "node-red-dashboard": "2.19.4",
+    "node-red-contrib-ui-level": "0.1.23",
+    "node-red-contrib-dashboard-bar-chart-data": "0.9.6",
     "node-red-contrib-image-tools": "0.2.5",
+    "node-red-contrib-webcamera": "tekn0ir/node-red-contrib-webcamera#master",
+    "node-red-contrib-files": "tekn0ir/node-red-contrib-files#master",
+    "node-red-teknoir-ssim": "tekn0ir/node-red-teknoir-ssim#master",
     "node-red-teknoir-send-multipart": "file:../"
   },
   "engines": {

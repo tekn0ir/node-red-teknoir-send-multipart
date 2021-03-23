@@ -1,12 +1,9 @@
-// require in libs
-var mustache = require('mustache');
-var request = require('request');
-
-var FormData = require('form-data');
-
 module.exports = function (RED) {
+    "use strict";
+    var mustache = require('mustache');
+    var request = require('request');
 
-    function httpSendMultipart(n) {
+    function HTTPSendMultipart(n) {
         // Setup node
         RED.nodes.createNode(this, n);
         var node = this;
@@ -71,16 +68,15 @@ module.exports = function (RED) {
                 }
 
                 // Add auth if it exists
-                if (this.credentials && this.credentials.user) {
+                if (n.user && n.password) {
                     var urlTail = url.substring(url.indexOf('://') + 3); // hacky but it works. don't judge me
-                    var username = this.credentials.user,
-                        password = this.credentials.password;
+                    var username = n.user,
+                        password = n.password;
                     if (url.indexOf("https") >= 0) {
                         url = 'https://' + username + ':' + password + '@' + urlTail;
                     } else {
                         url = 'http://' + username + ':' + password + '@' + urlTail;
                     }
-
                 }
 
                 const formData = {}
@@ -114,18 +110,6 @@ module.exports = function (RED) {
                         if (msg.headers.hasOwnProperty('set-cookie')) {
                             msg.responseCookies = extractCookies(msg.headers['set-cookie']);
                         }
-                        // msg.headers['x-node-red-request-node'] = hashSum(msg.headers);
-                        // msg.url = url;   // revert when warning above finally removed
-                        // if (node.metric()) {
-                        //     // Calculate request time
-                        //     var diff = process.hrtime(preRequestTimestamp);
-                        //     var ms = diff[0] * 1e3 + diff[1] * 1e-6;
-                        //     var metricRequestDurationMillis = ms.toFixed(3);
-                        //     node.metric("duration.millis", msg, metricRequestDurationMillis);
-                        //     if (res.client && res.client.bytesRead) {
-                        //         node.metric("size.bytes", msg, res.client.bytesRead);
-                        //     }
-                        // }
 
                         // Convert the payload to the required return type
                         if (node.ret !== "bin") {
@@ -144,43 +128,6 @@ module.exports = function (RED) {
                         nodeSend(msg);
                         nodeDone();
                     }
-                    // console.log(err)
-                    // // remove sending status
-                    // node.status({});
-                    //
-                    // //Handle error
-                    // if (err || !resp) {
-                    //     // node.error(RED._("httpSendMultipart.errors.no-url"), msg);
-                    //     var statusText = "Unexpected error";
-                    //     if (err) {
-                    //         statusText = err;
-                    //     } else if (!resp) {
-                    //         statusText = "No response object";
-                    //     }
-                    //     node.status({
-                    //         fill: "red",
-                    //         shape: "ring",
-                    //         text: statusText
-                    //     });
-                    // }
-                    // msg.payload = body;
-                    // msg.statusCode = resp.statusCode || resp.status;
-                    // msg.headers = resp.headers;
-                    // msg.formData = formData;
-                    //
-                    // if (node.ret !== "bin") {
-                    //     msg.payload = body.toString('utf8'); // txt
-                    //
-                    //     if (node.ret === "obj") {
-                    //         try {
-                    //             msg.payload = JSON.parse(body);
-                    //         } catch (e) {
-                    //             node.warn(RED._("httpSendMultipart.errors.json-error"));
-                    //         }
-                    //     }
-                    // }
-                    //
-                    // node.send(msg);
                 });
 
             }
@@ -190,15 +137,5 @@ module.exports = function (RED) {
     } // end of httpSendMultipart fxn
 
     // Register the Node
-    RED.nodes.registerType("http-send-multipart", httpSendMultipart, {
-        credentials: {
-            user: {
-                type: "text"
-            },
-            password: {
-                type: "password"
-            }
-        }
-    });
-
+    RED.nodes.registerType("http-send-multipart", HTTPSendMultipart);
 };
